@@ -1,3 +1,5 @@
+import json
+
 import gradio as gr
 
 from backend.utils import load_torch_file
@@ -7,9 +9,17 @@ INFO: dict[str, str] = {}
 
 
 def _load_inner(path: str) -> tuple[dict[str, str], bool]:
-    sd = load_torch_file(path)
     INFO.clear()
-    INFO.update({k: f"{list(v.shape)} ({v.dtype})" for k, v in sd.items()})
+    sd = load_torch_file(path)
+    keys = list(sd.keys())
+    for k in keys:
+        w = sd.pop(k)
+        if k.endswith("comfy_quant"):
+            INFO[k] = json.loads(w.numpy().tobytes())
+        elif w.ndim == 0:
+            INFO[k] = f"scaler ({w.dtype})"
+        else:
+            INFO[k] = f"{list(w.shape)} ({w.dtype})"
     return gr.update(value=INFO, visible=True), gr.update(value=None, visible=True)
 
 
